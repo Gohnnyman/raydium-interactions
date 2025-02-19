@@ -1,0 +1,20 @@
+[package]
+name = "client"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+clap = { version = "4.5.30", features = ["derive"] }
+spl-token = { version = "4.0.0", features = ["no-entrypoint"] }
+spl-token-2022 = { version = "0.9.0", features = ["no-entrypoint"] }
+solana-sdk = ">=1.14, <1.17"
+solana-client = ">=1.14, <1.17"
+rand = "0.7.3"
+anyhow = "1.0.95"
+toml = "0.8.20"
+serde = "1.0.217"
+anchor-client = "0.29.0"
+spl-associated-token-account = { version = "2.2.0", features = [
+    "no-entrypoint",
+] }
+anchor-lang = "0.29.0"
