@@ -24,6 +24,13 @@ pub enum CommandsName {
         token_account: Pubkey,
         amount: u64,
     },
+    IncreaseLiquidity {
+        tick_lower_price: f64,
+        tick_upper_price: f64,
+        input_amount: u64,
+        pool_pubkey: Pubkey,
+        slippage: f64,
+    },
     CreatePool {
         config_index: u16,
         price: f64,
@@ -39,8 +46,6 @@ fn main() {
     let args = Args::parse();
 
     let config = client::config::Config::from_file("config.toml").unwrap();
-
-    println!("CONFIG: {:#?}", config);
 
     match args.command {
         CommandsName::MintToken => {
@@ -59,6 +64,24 @@ fn main() {
             amount,
         } => {
             client::mint_to_token_account(&config, &mint, &token_account, amount).unwrap();
+        }
+        CommandsName::IncreaseLiquidity {
+            tick_lower_price,
+            tick_upper_price,
+            input_amount,
+            pool_pubkey,
+            slippage,
+        } => {
+            client::increase_liquidity(
+                &config,
+                tick_lower_price,
+                tick_upper_price,
+                true,
+                input_amount,
+                pool_pubkey,
+                slippage,
+            )
+            .unwrap();
         }
         CommandsName::CreatePool {
             config_index,

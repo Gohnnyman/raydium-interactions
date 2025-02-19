@@ -1045,6 +1045,8 @@ dependencies = [
  "rand 0.7.3",
  "raydium-amm-v3",
  "serde",
+ "serde_json",
+ "solana-account-decoder",
  "solana-client",
  "solana-sdk",
  "spl-associated-token-account",

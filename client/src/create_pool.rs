@@ -14,6 +14,7 @@ use solana_sdk::{
 };
 use solana_sdk::{system_program, sysvar};
 
+use crate::utils::get_tick_array_bitmap;
 use crate::{
     config::Config,
     rpc::send_txn,
@@ -151,25 +152,12 @@ pub fn create_pool_instr(
         &program.id(),
     );
 
-    let pool_id_account = Pubkey::find_program_address(
-        &[
-            raydium_amm_v3::states::POOL_SEED.as_bytes(),
-            amm_config.to_bytes().as_ref(),
-            token_mint_0.to_bytes().as_ref(),
-            token_mint_1.to_bytes().as_ref(),
-        ],
+    let tick_array_bitmap = get_tick_array_bitmap(
+        &amm_config,
+        &token_mint_0,
+        &token_mint_1,
         &config.global.raydium_v3_program.parse().unwrap(),
-    )
-    .0;
-
-    let tickarray_bitmap_extension = Pubkey::find_program_address(
-        &[
-            POOL_TICK_ARRAY_BITMAP_SEED.as_bytes(),
-            pool_id_account.to_bytes().as_ref(),
-        ],
-        &config.global.raydium_v3_program.parse().unwrap(),
-    )
-    .0;
+    );
 
     let instructions = program
         .request()
@@ -182,7 +170,7 @@ pub fn create_pool_instr(
             token_vault_0,
             token_vault_1,
             observation_state: observation_key,
-            tick_array_bitmap: tickarray_bitmap_extension,
+            tick_array_bitmap,
             token_program_0,
             token_program_1,
             system_program: system_program::id(),
