@@ -14,16 +14,8 @@ pub struct Global {
 }
 
 #[derive(Deserialize, Debug)]
-pub struct Pool {
-    pub mint0: String,
-    pub mint1: String,
-    pub amm_config_index: i32,
-}
-
-#[derive(Deserialize, Debug)]
 pub struct Config {
     pub global: Global,
-    pub pool: Pool,
 }
 
 impl Config {

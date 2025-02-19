@@ -2,7 +2,6 @@ use anchor_client::{Client, Cluster};
 use anyhow::Result;
 use raydium_amm_v3::accounts as raydium_accounts;
 use raydium_amm_v3::instruction as raydium_instruction;
-use raydium_amm_v3::states::POOL_TICK_ARRAY_BITMAP_SEED;
 use raydium_amm_v3::{
     libraries::tick_math,
     states::{OBSERVATION_SEED, POOL_SEED, POOL_VAULT_SEED},

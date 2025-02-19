@@ -102,7 +102,6 @@ pub fn decrease_liquidity(
             && position.tick_upper_index == tick_upper_index
         {
             find_position = position.clone();
-            println!("liquidity:{:?}", find_position);
         }
     }
 

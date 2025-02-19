@@ -5,3 +5,9 @@ payer_path = "~/.config/solana/abobaiZfw82SFpfDuy7xDVcgZSpdWu18pr538H5QPQ7.json"
 admin_path = "~/.config/solana/abobaiZfw82SFpfDuy7xDVcgZSpdWu18pr538H5QPQ7.json"
 raydium_v3_program = "devi51mZmdwUJGU9hjN27vEz64Gps7uUefqxg27EAtH"
 slippage = 0.01
+
+[pool]
+mint0 = "2SiSpNowr7zUv5ZJHuzHszskQNaskWsNukhivCtuVLHo"
+mint1 = "GfmdKWR1KrttDsQkJfwtXovZw9bUBHYkPAEwB6wZqQvJ"
+
+amm_config_index = 1

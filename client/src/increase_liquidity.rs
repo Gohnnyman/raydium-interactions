@@ -53,9 +53,6 @@ pub fn increase_liquidity(
     let mint1 = pool.token_mint_1;
     let amm_config = pool.amm_config;
 
-    println!("MINT0: {:#?}", mint0);
-    println!("MINT1: {:#?}", mint1);
-
     // load position
     let position_nft_infos =
         get_all_nft_and_position_by_owner(&rpc_client, &payer.pubkey(), &program_pubkey);
