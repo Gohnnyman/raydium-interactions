@@ -4,7 +4,11 @@ use anchor_lang::AccountDeserialize;
 use anyhow::{anyhow, Result};
 
 use raydium_amm_v3::states::POOL_TICK_ARRAY_BITMAP_SEED;
-use solana_client::rpc_client::RpcClient;
+use solana_account_decoder::{
+    parse_token::{TokenAccountType, UiAccountState},
+    UiAccountData,
+};
+use solana_client::{rpc_client::RpcClient, rpc_request::TokenAccountsFilter};
 use solana_sdk::{account::Account, pubkey::Pubkey, signature::Keypair};
 use spl_token_2022::{
     extension::{
@@ -125,6 +129,50 @@ pub fn get_pool_mints_inverse_fee(
     )
 }
 
+pub fn get_pool_mints_transfer_fee(
+    rpc_client: &RpcClient,
+    token_mint_0: Pubkey,
+    token_mint_1: Pubkey,
+    pre_fee_amount_0: u64,
+    pre_fee_amount_1: u64,
+) -> (TransferFeeInfo, TransferFeeInfo) {
+    let load_accounts = vec![token_mint_0, token_mint_1];
+    let rsps = rpc_client.get_multiple_accounts(&load_accounts).unwrap();
+    let epoch = rpc_client.get_epoch_info().unwrap().epoch;
+    let mint0_account = rsps[0].clone().ok_or("load mint0 rps error!").unwrap();
+    let mint1_account = rsps[1].clone().ok_or("load mint0 rps error!").unwrap();
+    let mint0_state = StateWithExtensions::<Mint>::unpack(&mint0_account.data).unwrap();
+    let mint1_state = StateWithExtensions::<Mint>::unpack(&mint1_account.data).unwrap();
+    (
+        TransferFeeInfo {
+            mint: token_mint_0,
+            owner: mint0_account.owner,
+            transfer_fee: get_transfer_fee(&mint0_state, epoch, pre_fee_amount_0),
+        },
+        TransferFeeInfo {
+            mint: token_mint_1,
+            owner: mint1_account.owner,
+            transfer_fee: get_transfer_fee(&mint1_state, epoch, pre_fee_amount_1),
+        },
+    )
+}
+
+/// Calculate the fee for input amount
+pub fn get_transfer_fee<'data, S: BaseState>(
+    account_state: &StateWithExtensions<'data, S>,
+    epoch: u64,
+    pre_fee_amount: u64,
+) -> u64 {
+    let fee = if let Ok(transfer_fee_config) = account_state.get_extension::<TransferFeeConfig>() {
+        transfer_fee_config
+            .calculate_epoch_fee(epoch, pre_fee_amount)
+            .unwrap()
+    } else {
+        0
+    };
+    fee
+}
+
 /// Calculate the fee for output amount
 pub fn get_transfer_inverse_fee<'data, S: BaseState>(
     account_state: &StateWithExtensions<'data, S>,
@@ -144,4 +192,96 @@ pub fn get_transfer_inverse_fee<'data, S: BaseState>(
         0
     };
     fee
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct PositionNftTokenInfo {
+    pub key: Pubkey,
+    pub program: Pubkey,
+    pub position: Pubkey,
+    pub mint: Pubkey,
+    pub amount: u64,
+    pub decimals: u8,
+}
+
+pub fn get_all_nft_and_position_by_owner(
+    client: &RpcClient,
+    owner: &Pubkey,
+    raydium_amm_v3_program: &Pubkey,
+) -> Vec<PositionNftTokenInfo> {
+    let mut spl_nfts = get_nft_account_and_position_by_owner(
+        client,
+        owner,
+        spl_token::id(),
+        raydium_amm_v3_program,
+    );
+    let spl_2022_nfts = get_nft_account_and_position_by_owner(
+        client,
+        owner,
+        spl_token_2022::id(),
+        raydium_amm_v3_program,
+    );
+    spl_nfts.extend(spl_2022_nfts);
+    spl_nfts
+}
+
+pub fn get_nft_account_and_position_by_owner(
+    client: &RpcClient,
+    owner: &Pubkey,
+    token_program: Pubkey,
+    raydium_amm_v3_program: &Pubkey,
+) -> Vec<PositionNftTokenInfo> {
+    let all_tokens = client
+        .get_token_accounts_by_owner(owner, TokenAccountsFilter::ProgramId(token_program))
+        .unwrap();
+    let mut position_nft_accounts = Vec::new();
+    for keyed_account in all_tokens {
+        if let UiAccountData::Json(parsed_account) = keyed_account.account.data {
+            if parsed_account.program == "spl-token" || parsed_account.program == "spl-token-2022" {
+                if let Ok(TokenAccountType::Account(ui_token_account)) =
+                    serde_json::from_value(parsed_account.parsed)
+                {
+                    let _frozen = ui_token_account.state == UiAccountState::Frozen;
+
+                    let token = ui_token_account
+                        .mint
+                        .parse::<Pubkey>()
+                        .unwrap_or_else(|err| panic!("Invalid mint: {}", err));
+                    let token_account = keyed_account
+                        .pubkey
+                        .parse::<Pubkey>()
+                        .unwrap_or_else(|err| panic!("Invalid token account: {}", err));
+                    let token_amount = ui_token_account
+                        .token_amount
+                        .amount
+                        .parse::<u64>()
+                        .unwrap_or_else(|err| panic!("Invalid token amount: {}", err));
+
+                    let _close_authority = ui_token_account.close_authority.map_or(*owner, |s| {
+                        s.parse::<Pubkey>()
+                            .unwrap_or_else(|err| panic!("Invalid close authority: {}", err))
+                    });
+
+                    if ui_token_account.token_amount.decimals == 0 && token_amount == 1 {
+                        let (position_pda, _) = Pubkey::find_program_address(
+                            &[
+                                raydium_amm_v3::states::POSITION_SEED.as_bytes(),
+                                token.to_bytes().as_ref(),
+                            ],
+                            &raydium_amm_v3_program,
+                        );
+                        position_nft_accounts.push(PositionNftTokenInfo {
+                            key: token_account,
+                            program: token_program,
+                            position: position_pda,
+                            mint: token,
+                            amount: token_amount,
+                            decimals: ui_token_account.token_amount.decimals,
+                        });
+                    }
+                }
+            }
+        }
+    }
+    position_nft_accounts
 }

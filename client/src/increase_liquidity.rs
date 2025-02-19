@@ -5,28 +5,20 @@ use rand::rngs::OsRng;
 use raydium_amm_v3::accounts as raydium_accounts;
 use raydium_amm_v3::instruction as raydium_instruction;
 use raydium_amm_v3::libraries::liquidity_math;
-use raydium_amm_v3::states::tickarray_bitmap_extension;
-use raydium_amm_v3::states::POOL_TICK_ARRAY_BITMAP_SEED;
+use raydium_amm_v3::libraries::tick_math;
 use raydium_amm_v3::states::POSITION_SEED;
 use raydium_amm_v3::states::TICK_ARRAY_SEED;
-use raydium_amm_v3::{
-    libraries::tick_math,
-    states::{OBSERVATION_SEED, POOL_SEED, POOL_VAULT_SEED},
-};
-use solana_account_decoder::parse_token::TokenAccountType;
-use solana_account_decoder::parse_token::UiAccountState;
-use solana_account_decoder::UiAccountData;
 use solana_client::rpc_client::RpcClient;
-use solana_client::rpc_request::TokenAccountsFilter;
 use solana_sdk::compute_budget::ComputeBudgetInstruction;
 use solana_sdk::{
-    instruction::Instruction, program_pack::Pack, pubkey::Pubkey, signature::Keypair,
-    signer::Signer, transaction::Transaction,
+    instruction::Instruction, pubkey::Pubkey, signature::Keypair, signer::Signer,
+    transaction::Transaction,
 };
 use solana_sdk::{system_program, sysvar};
 
 use crate::utils::amount_with_slippage;
 use crate::utils::deserialize_anchor_account;
+use crate::utils::get_all_nft_and_position_by_owner;
 use crate::utils::get_pool_mints_inverse_fee;
 use crate::utils::get_tick_array_bitmap;
 use crate::utils::tick_with_spacing;
@@ -371,98 +363,6 @@ pub fn increase_liquidity_instr(
         })
         .instructions()?;
     Ok(instructions)
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-struct PositionNftTokenInfo {
-    key: Pubkey,
-    program: Pubkey,
-    position: Pubkey,
-    mint: Pubkey,
-    amount: u64,
-    decimals: u8,
-}
-
-fn get_all_nft_and_position_by_owner(
-    client: &RpcClient,
-    owner: &Pubkey,
-    raydium_amm_v3_program: &Pubkey,
-) -> Vec<PositionNftTokenInfo> {
-    let mut spl_nfts = get_nft_account_and_position_by_owner(
-        client,
-        owner,
-        spl_token::id(),
-        raydium_amm_v3_program,
-    );
-    let spl_2022_nfts = get_nft_account_and_position_by_owner(
-        client,
-        owner,
-        spl_token_2022::id(),
-        raydium_amm_v3_program,
-    );
-    spl_nfts.extend(spl_2022_nfts);
-    spl_nfts
-}
-
-fn get_nft_account_and_position_by_owner(
-    client: &RpcClient,
-    owner: &Pubkey,
-    token_program: Pubkey,
-    raydium_amm_v3_program: &Pubkey,
-) -> Vec<PositionNftTokenInfo> {
-    let all_tokens = client
-        .get_token_accounts_by_owner(owner, TokenAccountsFilter::ProgramId(token_program))
-        .unwrap();
-    let mut position_nft_accounts = Vec::new();
-    for keyed_account in all_tokens {
-        if let UiAccountData::Json(parsed_account) = keyed_account.account.data {
-            if parsed_account.program == "spl-token" || parsed_account.program == "spl-token-2022" {
-                if let Ok(TokenAccountType::Account(ui_token_account)) =
-                    serde_json::from_value(parsed_account.parsed)
-                {
-                    let _frozen = ui_token_account.state == UiAccountState::Frozen;
-
-                    let token = ui_token_account
-                        .mint
-                        .parse::<Pubkey>()
-                        .unwrap_or_else(|err| panic!("Invalid mint: {}", err));
-                    let token_account = keyed_account
-                        .pubkey
-                        .parse::<Pubkey>()
-                        .unwrap_or_else(|err| panic!("Invalid token account: {}", err));
-                    let token_amount = ui_token_account
-                        .token_amount
-                        .amount
-                        .parse::<u64>()
-                        .unwrap_or_else(|err| panic!("Invalid token amount: {}", err));
-
-                    let _close_authority = ui_token_account.close_authority.map_or(*owner, |s| {
-                        s.parse::<Pubkey>()
-                            .unwrap_or_else(|err| panic!("Invalid close authority: {}", err))
-                    });
-
-                    if ui_token_account.token_amount.decimals == 0 && token_amount == 1 {
-                        let (position_pda, _) = Pubkey::find_program_address(
-                            &[
-                                raydium_amm_v3::states::POSITION_SEED.as_bytes(),
-                                token.to_bytes().as_ref(),
-                            ],
-                            &raydium_amm_v3_program,
-                        );
-                        position_nft_accounts.push(PositionNftTokenInfo {
-                            key: token_account,
-                            program: token_program,
-                            position: position_pda,
-                            mint: token,
-                            amount: token_amount,
-                            decimals: ui_token_account.token_amount.decimals,
-                        });
-                    }
-                }
-            }
-        }
-    }
-    position_nft_accounts
 }
 
 pub fn open_position_with_token22_nft_instr(

@@ -1,6 +1,7 @@
 use client;
 
 use clap::Parser;
+use raydium_amm_v3::states::pool;
 use solana_sdk::pubkey::Pubkey;
 
 #[derive(Debug, Parser)]
@@ -30,6 +31,13 @@ pub enum CommandsName {
         input_amount: u64,
         pool_pubkey: Pubkey,
         slippage: f64,
+    },
+    DecreaseLiquidity {
+        tick_lower_price: f64,
+        tick_upper_price: f64,
+        pool_pubkey: Pubkey,
+        slippage: f64,
+        liquidity: Option<u128>,
     },
     CreatePool {
         config_index: u16,
@@ -78,6 +86,23 @@ fn main() {
                 tick_upper_price,
                 true,
                 input_amount,
+                pool_pubkey,
+                slippage,
+            )
+            .unwrap();
+        }
+        CommandsName::DecreaseLiquidity {
+            tick_lower_price,
+            tick_upper_price,
+            liquidity,
+            pool_pubkey,
+            slippage,
+        } => {
+            client::decrease_liquidity(
+                &config,
+                tick_lower_price,
+                tick_upper_price,
+                liquidity,
                 pool_pubkey,
                 slippage,
             )
