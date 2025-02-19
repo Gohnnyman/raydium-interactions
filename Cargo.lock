@@ -1043,6 +1043,7 @@ dependencies = [
  "anyhow",
  "clap 4.5.30",
  "rand 0.7.3",
+ "raydium-amm-v3",
  "serde",
  "solana-client",
  "solana-sdk",

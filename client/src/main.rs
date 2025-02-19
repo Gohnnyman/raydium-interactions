@@ -1,6 +1,7 @@
 use client;
 
 use clap::Parser;
+use solana_sdk::pubkey::Pubkey;
 
 #[derive(Debug, Parser)]
 
@@ -16,12 +17,20 @@ pub struct Args {
 pub enum CommandsName {
     MintToken,
     CreateTokenAccount {
-        mint: String,
+        mint: Pubkey,
     },
     MintToTokenAccount {
-        mint: String,
-        token_account: String,
+        mint: Pubkey,
+        token_account: Pubkey,
         amount: u64,
+    },
+    CreatePool {
+        config_index: u16,
+        price: f64,
+        mint0: Pubkey,
+        mint1: Pubkey,
+        #[arg(short, long, default_value_t = 0)]
+        open_time: u64,
     },
     Test,
 }
@@ -40,7 +49,6 @@ fn main() {
             println!("Mint: {}", mint);
         }
         CommandsName::CreateTokenAccount { mint } => {
-            let mint = mint.parse().unwrap();
             let token_account = client::create_token_account(&config, &mint).unwrap();
 
             println!("Token Account: {}", token_account);
@@ -50,10 +58,19 @@ fn main() {
             token_account,
             amount,
         } => {
-            let mint = mint.parse().unwrap();
-            let token_account = token_account.parse().unwrap();
-
             client::mint_to_token_account(&config, &mint, &token_account, amount).unwrap();
+        }
+        CommandsName::CreatePool {
+            config_index,
+            price,
+            mint0,
+            mint1,
+            open_time,
+        } => {
+            let pool =
+                client::create_pool(&config, config_index, price, mint0, mint1, open_time).unwrap();
+
+            println!("Pool: {}", pool);
         }
         CommandsName::Test => {
             let mint1 = client::create_mint(&config).unwrap();

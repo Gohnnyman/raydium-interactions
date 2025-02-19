@@ -17,4 +17,10 @@ anchor-client = "0.29.0"
 spl-associated-token-account = { version = "2.2.0", features = [
     "no-entrypoint",
 ] }
+
+raydium-amm-v3 = { git = "https://github.com/raydium-io/raydium-clmm", features = [
+    "no-entrypoint",
+    "client",
+] }
+
 anchor-lang = "0.29.0"
