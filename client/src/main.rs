@@ -103,9 +103,6 @@ pub enum RaydiumSubcommands {
         #[arg(short, long, default_value_t = 0)]
         open_time: u64,
     },
-
-    /// A test command for Raydium operations.
-    Test,
 }
 
 /// Subcommands under the Soland category.
@@ -219,23 +216,6 @@ fn process_raydium_subcommands(subcommand: RaydiumSubcommands, config: &Config) 
             let pool =
                 client::create_pool(&config, config_index, price, mint0, mint1, open_time).unwrap();
             println!("Pool created: {}", pool);
-        }
-        RaydiumSubcommands::Test => {
-            // Execute test logic for Raydium commands.
-            let mint1 = client::create_mint(&config).unwrap();
-            let token_account1 = client::create_token_account(&config, &mint1).unwrap();
-
-            let mint2 = client::create_mint(&config).unwrap();
-            let token_account2 = client::create_token_account(&config, &mint2).unwrap();
-
-            println!("Mint1: {}", mint1);
-            println!("Token Account1: {}", token_account1);
-
-            println!("Mint2: {}", mint2);
-            println!("Token Account2: {}", token_account2);
-
-            client::mint_to_token_account(&config, &mint1, &token_account1, 100_000).unwrap();
-            client::mint_to_token_account(&config, &mint2, &token_account2, 100_000).unwrap();
         }
     }
 }

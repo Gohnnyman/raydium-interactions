@@ -126,7 +126,6 @@ fn test_liquidity_operations() {
     let tick_lower_price = 1.0;
     let tick_upper_price = 100.0;
     let input_amount = 100;
-    let slippage = 0.01;
 
     increase_liquidity(
         &config,
@@ -135,7 +134,7 @@ fn test_liquidity_operations() {
         true, // Example flag (could be direction or a boolean option)
         input_amount,
         pool,
-        slippage,
+        config.global.slippage,
     )
     .expect("Failed to increase liquidity");
 
@@ -149,7 +148,7 @@ fn test_liquidity_operations() {
         true, // Example flag (could be direction or a boolean option)
         input_amount,
         pool,
-        slippage,
+        config.global.slippage,
     )
     .expect("Failed to increase liquidity");
 
@@ -163,7 +162,7 @@ fn test_liquidity_operations() {
         tick_upper_price,
         liquidity_to_decrease,
         pool,
-        slippage,
+        config.global.slippage,
     )
     .expect("Failed to decrease liquidity");
 
@@ -178,7 +177,7 @@ fn test_liquidity_operations() {
         tick_upper_price,
         None,
         pool,
-        slippage,
+        config.global.slippage,
     )
     .expect("Failed to decrease liquidity");
 }

@@ -8,7 +8,6 @@ pub struct Global {
     pub http_url: String,
     pub ws_url: String,
     pub payer_path: String,
-    pub admin_path: String,
     pub raydium_v3_program: String,
     pub slippage: f64,
 }
