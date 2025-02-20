@@ -16,6 +16,8 @@ anyhow = "1.0.95"
 toml = "0.8.20"
 serde = "1.0.217"
 anchor-client = "0.29.0"
+
+solend-sdk = { git = "https://github.com/solendprotocol/solana-program-library" }
 spl-associated-token-account = { version = "2.2.0", features = [
     "no-entrypoint",
 ] }

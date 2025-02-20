@@ -1,15 +1,18 @@
+use std::str::FromStr;
+
 use client::{self, config::Config};
 
 use clap::{Parser, Subcommand};
 
-use solana_sdk::pubkey::Pubkey;
+use solana_client::rpc_client::RpcClient;
+use solana_sdk::{program_pack::Pack, pubkey::Pubkey};
 
 /// Top-level struct for parsing command-line arguments.
 ///
 /// The `Args` struct holds global options (like the configuration file)
-/// and a subcommand which groups specific commands (e.g., Raydium or Soland).
+/// and a subcommand which groups specific commands (e.g., Raydium or Solend).
 #[derive(Debug, Parser)]
-#[command(author, version, about = "CLI for managing Raydium and Soland operations", long_about = None)]
+#[command(author, version, about = "CLI for managing Raydium and Solend operations", long_about = None)]
 pub struct Args {
     /// Global configuration file path. This option allows you to specify
     /// a TOML file that contains configuration details.
@@ -17,7 +20,7 @@ pub struct Args {
     pub config: String,
 
     /// Choose a subcommand to execute. The subcommands are grouped into different
-    /// categories such as `raydium` for Raydium-related commands and `soland` for Soland-related commands.
+    /// categories such as `raydium` for Raydium-related commands and `solend` for Solend-related commands.
     #[command(subcommand)]
     pub subcommand: Subcommands,
 }
@@ -31,9 +34,9 @@ pub enum Subcommands {
     #[command(subcommand, name = "raydium")]
     RaydiumSubcommands(RaydiumSubcommands),
 
-    /// Soland-related operations.
-    #[command(subcommand, name = "soland")]
-    SolandSubcommands(SolandSubcommands),
+    /// Solend-related operations.
+    #[command(subcommand, name = "solend")]
+    SolendSubcommands(SolendSubcommands),
 }
 
 /// Subcommands under the Raydium category.
@@ -105,12 +108,12 @@ pub enum RaydiumSubcommands {
     },
 }
 
-/// Subcommands under the Soland category.
+/// Subcommands under the Solend category.
 ///
-/// This enum can be extended as additional Soland operations become available.
+/// This enum can be extended as additional Solend operations become available.
 #[derive(Debug, Subcommand)]
-pub enum SolandSubcommands {
-    /// A test command for Soland operations.
+pub enum SolendSubcommands {
+    /// A test command for Solend operations.
     Test,
 }
 
@@ -128,18 +131,28 @@ fn main() {
         Subcommands::RaydiumSubcommands(subcommand) => {
             process_raydium_subcommands(subcommand, &config);
         }
-        Subcommands::SolandSubcommands(subcommand) => {
-            process_soland_subcommands(subcommand, &config);
+        Subcommands::SolendSubcommands(subcommand) => {
+            process_solend_subcommands(subcommand, &config);
         }
     }
 }
 
-/// Processes Soland-specific subcommands.
-fn process_soland_subcommands(subcommand: SolandSubcommands, _: &Config) {
+/// Processes Solend-specific subcommands.
+fn process_solend_subcommands(subcommand: SolendSubcommands, config: &Config) {
     match subcommand {
-        SolandSubcommands::Test => {
-            // Implement the Soland test command here.
-            println!("Soland test command executed.");
+        SolendSubcommands::Test => {
+            // let solend = Pubkey::from_str("ALend7Ketfx5bxh6ghsCDXAoDrhvEmsXT3cynB6aPLgx").unwrap();
+            let lending_market =
+                Pubkey::from_str("6xSkPYdpga1SgjZUemGNzDFkwbV68GSdySrP7XYShhE5").unwrap();
+
+            let rpc = RpcClient::new(config.global.http_url.to_string());
+
+            let account = rpc.get_account_data(&lending_market);
+
+            let lending_market_account =
+                solend_sdk::state::LendingMarket::unpack(&account.unwrap()).unwrap();
+
+            println!("Lending Market: {:#?}", lending_market_account);
         }
     }
 }
